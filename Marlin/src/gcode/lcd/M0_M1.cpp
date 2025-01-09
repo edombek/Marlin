@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,21 +24,20 @@
 
 #if HAS_RESUME_CONTINUE
 
-#include "../gcode.h"
-#include "../../module/planner.h"
-
 #include "../../inc/MarlinConfig.h"
 
-#if HAS_LCD_MENU
-  #include "../../lcd/ultralcd.h"
-#endif
+#include "../gcode.h"
 
-#if ENABLED(EXTENSIBLE_UI)
+#include "../../module/planner.h" // for synchronize()
+#include "../../MarlinCore.h"     // for wait_for_user_response()
+
+#if HAS_MARLINUI_MENU
+  #include "../../lcd/marlinui.h"
+#elif ENABLED(EXTENSIBLE_UI)
   #include "../../lcd/extui/ui_api.h"
-#endif
-
-#if HAS_LEDS_OFF_FLAG
-  #include "../../feature/leds/printer_event_leds.h"
+#elif ENABLED(DWIN_LCD_PROUI)
+  #include "../../lcd/e3v2/proui/dwin_popup.h"
+  #include "../../lcd/e3v2/proui/dwin.h"
 #endif
 
 #if ENABLED(HOST_PROMPT_SUPPORT)
@@ -56,29 +55,27 @@ void GcodeSuite::M0_M1() {
 
   planner.synchronize();
 
-  const bool seenQ = parser.seen('Q');
-  #if HAS_LEDS_OFF_FLAG
-    if (seenQ) printerEventLEDs.onPrintCompleted();      // Change LED color for Print Completed
-  #endif
-
-  #if HAS_LCD_MENU
+  #if HAS_MARLINUI_MENU
 
     if (parser.string_arg)
       ui.set_status(parser.string_arg, true);
-    else if (!seenQ) {
-      LCD_MESSAGEPGM(MSG_USERWAIT);
+    else {
+      LCD_MESSAGE(MSG_USERWAIT);
       #if ENABLED(LCD_PROGRESS_BAR) && PROGRESS_MSG_EXPIRE > 0
         ui.reset_progress_bar_timeout();
       #endif
     }
 
   #elif ENABLED(EXTENSIBLE_UI)
-
     if (parser.string_arg)
-      ExtUI::onUserConfirmRequired(parser.string_arg); // Can this take an SRAM string??
+      ExtUI::onUserConfirmRequired(parser.string_arg); // String in an SRAM buffer
     else
-      ExtUI::onUserConfirmRequired_P(GET_TEXT(MSG_USERWAIT));
-
+      ExtUI::onUserConfirmRequired(GET_TEXT_F(MSG_USERWAIT));
+  #elif ENABLED(DWIN_LCD_PROUI)
+    if (parser.string_arg)
+      DWIN_Popup_Confirm(ICON_BLTouch, parser.string_arg, GET_TEXT_F(MSG_USERWAIT));
+    else
+      DWIN_Popup_Confirm(ICON_BLTouch, GET_TEXT_F(MSG_STOPPED), GET_TEXT_F(MSG_USERWAIT));
   #else
 
     if (parser.string_arg) {
@@ -88,25 +85,16 @@ void GcodeSuite::M0_M1() {
 
   #endif
 
-  KEEPALIVE_STATE(PAUSED_FOR_USER);
-  wait_for_user = true;
-
   #if ENABLED(HOST_PROMPT_SUPPORT)
-    host_prompt_do(PROMPT_USER_CONTINUE, parser.codenum ? PSTR("M1 Stop") : PSTR("M0 Stop"), CONTINUE_STR);
+    if (parser.string_arg)
+      hostui.continue_prompt(parser.string_arg);
+    else
+      hostui.continue_prompt(parser.codenum ? F("M1 Stop") : F("M0 Stop"));
   #endif
 
-  if (ms > 0) ms += millis();  // wait until this time for a click
-  while (wait_for_user && (ms == 0 || PENDING(millis(), ms))) idle();
+  TERN_(HAS_RESUME_CONTINUE, wait_for_user_response(ms));
 
-  #if HAS_LEDS_OFF_FLAG
-    printerEventLEDs.onResumeAfterWait();
-  #endif
-
-  #if HAS_LCD_MENU
-    if (!seenQ) ui.reset_status();
-  #endif
-
-  wait_for_user = false;
+  TERN_(HAS_MARLINUI_MENU, ui.reset_status());
 }
 
 #endif // HAS_RESUME_CONTINUE

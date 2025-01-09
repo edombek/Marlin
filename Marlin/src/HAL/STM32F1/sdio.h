@@ -1,9 +1,9 @@
 /**
  * Marlin 3D Printer Firmware
- *
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
- * Copyright (c) 2016 Bob Cousins bobcousins42@googlemail.com
- * Copyright (c) 2017 Victor Perez
+ *
+ * Based on Sprinter and grbl.
+ * Copyright (c) 2011 Camiel Gubbels / Erik van der Zalm
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,12 +16,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 #pragma once
 
-#include "../shared/Marduino.h"
+#include "../../inc/MarlinConfig.h" // Allow pins/pins.h to override SDIO clock / retries
 
 #include <libmaple/sdio.h>
 #include <libmaple/dma.h>
@@ -59,7 +59,6 @@
 #define ACMD6_APP_SD_SET_BUSWIDTH                     (uint16_t)(SDMMC_ACMD_APP_SD_SET_BUSWIDTH | SDIO_CMD_WAIT_SHORT_RESP)
 #define ACMD41_SD_APP_OP_COND                         (uint16_t)(SDMMC_ACMD_SD_APP_OP_COND | SDIO_CMD_WAIT_SHORT_RESP)
 #define ACMD42_SD_APP_SET_CLR_CARD_DETECT             (uint16_t)(SDMMC_ACMD_SD_APP_SET_CLR_CARD_DETECT | SDIO_CMD_WAIT_SHORT_RESP)
-
 
 #define SDMMC_ALLZERO                        0x00000000U
 #define SDMMC_OCR_ERRORBITS                  0xFDFFE008U
@@ -100,7 +99,13 @@
 #define SDIO_DATA_TIMEOUT                    100U           /* Read data transfer timeout */
 #define SDIO_WRITE_TIMEOUT                   200U           /* Write data transfer timeout */
 
-#define SDIO_CLOCK                           18000000       /* 18 MHz */
+#ifndef SDIO_CLOCK
+  #define SDIO_CLOCK                         18000000       /* 18 MHz */
+#endif
+
+#ifndef SDIO_READ_RETRIES
+  #define SDIO_READ_RETRIES                  3
+#endif
 
 // ------------------------
 // Types
