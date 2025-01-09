@@ -1,8 +1,9 @@
 /**
  * Marlin 3D Printer Firmware
- *
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
- * SAMD51 HAL developed by Giuliano Zaro (AKA GMagician)
+ *
+ * Based on Sprinter and grbl.
+ * Copyright (c) 2011 Camiel Gubbels / Erik van der Zalm
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,10 +16,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 #pragma once
+
+/**
+ * SAMD51 HAL developed by Giuliano Zaro (AKA GMagician)
+ */
 
 /**
  * Fast IO functions for SAMD51
@@ -31,7 +36,7 @@
  */
 
 #ifndef MASK
-  #define MASK(PIN) (1 << PIN)
+  #define MASK(PIN) _BV(PIN)
 #endif
 
 /**
@@ -100,9 +105,9 @@
                                   PORT->Group[port].DIRCLR.reg = MASK(pin);                           \
                                 }while(0)
 // Set pin as PWM (push pull)
-#define SET_PWM(IO)             SET_OUTPUT(IO)
+#define SET_PWM                 SET_OUTPUT
 // Set pin as PWM (open drain)
-#define SET_PWM_OD(IO)          SET_OUTPUT_OD(IO)
+#define SET_PWM_OD              SET_OUTPUT_OD
 
 // check if pin is an output
 #define IS_OUTPUT(IO)            ((PORT->Group[(EPortType)GET_SAMD_PORT(IO)].DIR.reg & MASK(GET_SAMD_PIN(IO))) \
@@ -125,13 +130,13 @@
 
 #ifdef ADAFRUIT_GRAND_CENTRAL_M4
 
-  /*
+  /**
    * Adafruit Grand Central M4 has a lot of PWMs the availables are listed here.
    * Some of these share the same source and so can't be used in the same time
    */
   #define PWM_PIN(P)        (WITHIN(P, 2, 13) || WITHIN(P, 22, 23) || WITHIN(P, 44, 45) || P == 48)
 
-  // Return fullfilled ADCx->INPUTCTRL.reg
+  // Return fulfilled ADCx->INPUTCTRL.reg
   #define PIN_TO_INPUTCTRL(P)     (  (PIN_TO_AIN(P) == 0) ? ADC_INPUTCTRL_MUXPOS_AIN0   \
                                    : (PIN_TO_AIN(P) == 1) ? ADC_INPUTCTRL_MUXPOS_AIN1   \
                                    : (PIN_TO_AIN(P) == 2) ? ADC_INPUTCTRL_MUXPOS_AIN2   \
@@ -169,9 +174,9 @@
                                    : (P == 17) ? PIN_TO_SAMD_PIN(13)  \
                                    : PIN_TO_SAMD_PIN(9))
 
-  #define digitalPinToAnalogInput(P) (WITHIN(P, 67, 74) ? (P) - 67 : WITHIN(P, 54, 61) ? 8 + (P) - 54 : WITHIN(P, 12, 13) ? 16 + (P) - 12 : P == 9 ? 18 : -1)
+  #define digitalPinToAnalogIndex(P) (WITHIN(P, 67, 74) ? (P) - 67 : WITHIN(P, 54, 61) ? 8 + (P) - 54 : WITHIN(P, 12, 13) ? 16 + (P) - 12 : P == 9 ? 18 : -1)
 
-  /*
+  /**
    * pins
    */
 
